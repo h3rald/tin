@@ -93,6 +93,8 @@ proc uncompress*(src, dst: string) =
       discard pZip.mz_zip_reader_get_filename(i, filename, size)
       debug "Uncompressing: $1" % [$filename]
       let dest = dst / $filename
+      dest.parentDir.createDir()
+      dest.writeFile("")
       echo pZip.mz_zip_reader_extract_to_file(i, dest, 0)
   discard pZip.mz_zip_reader_end()
 
