@@ -3,3 +3,6 @@ proc error*(msg: string) =
 
 proc success*(msg: string) =
   echo(            "SUCCESS: ", msg)
+
+proc debug*(msg: string) =
+  echo(            "DEBUG:   ", msg)

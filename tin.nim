@@ -6,7 +6,6 @@ import
   strutils
 
 import
-  vendor/lz4,
   lib/utils,
   lib/config,
   lib/package
@@ -30,6 +29,8 @@ let USAGE = "  Tin v" & VERSION & " - a tiny general-purpose package manager" & 
   Commands:
     init <name>       Creates a tin.json file in the current directory for
                       package <name>.  
+    fill              Creates a compressed package file.
+    open <src> <dst>  Uncompresses the <src> tin package to target directory <dst>.
   Options:
     -v, --version     (init) Specifies a (semantic) version for the package.
 """
@@ -67,11 +68,27 @@ case ARGS[0]:
       error "Package name not specified."
       quit(1)
     try:
-      newPackage(dir = getCurrentDir(), name = ARGS[1], version = v)
+      newTinPackage(dir = getCurrentDir(), name = ARGS[1], version = v)
       success "Tin package \"$1\" (version: $2) initialized." % [ARGS[1], v] 
     except:
       error getCurrentExceptionMsg()
       quit(11)
+  of "fill":
+    try:
+      let pkg = newTinPackage()
+      pkg.compress(getCurrentDir())
+    except:
+      error getCurrentExceptionMsg()
+      quit(21)
+  of "open":
+    if ARGS.len < 3:
+      error "Package file or destination not specified"
+      quit(3)
+    try:
+      ARGS[1].uncompress(ARGS[2])
+    except:
+      error getCurrentExceptionMsg()
+      quit(21)
   else:
     error "Invalid command: $1" % [ARGS[0]] 
     quit(2)
