@@ -44,6 +44,8 @@
 #*************************************
 #  Version
 #************************************
+{.compile: "liblz4.c".}
+{.push importc.}
 
 const 
   LZ4_VERSION_MAJOR* = 1
@@ -52,7 +54,7 @@ const
   LZ4_VERSION_NUMBER* = (LZ4_VERSION_MAJOR * 100 * 100 +
       LZ4_VERSION_MINOR * 100 + LZ4_VERSION_RELEASE)
 
-proc LZ4_versionNumber*(): cint
+proc LZ4_versionNumber_fun*(): cint
 #*************************************
 #  Tuning parameter
 #************************************
@@ -332,67 +334,3 @@ proc LZ4_decompress_safe_usingDict*(source: cstring; dest: cstring;
 proc LZ4_decompress_fast_usingDict*(source: cstring; dest: cstring; 
                                     originalSize: cint; dictStart: cstring; 
                                     dictSize: cint): cint
-#*************************************
-#  Obsolete Functions
-#************************************
-# Deprecate Warnings 
-# Should these warnings messages be a problem,
-#   it is generally possible to disable them,
-#   with -Wno-deprecated-declarations for gcc
-#   or _CRT_SECURE_NO_WARNINGS in Visual for example.
-#   You can also define LZ4_DEPRECATE_WARNING_DEFBLOCK. 
-
-when not(defined(LZ4_DEPRECATE_WARNING_DEFBLOCK)): 
-  const 
-    LZ4_DEPRECATE_WARNING_DEFBLOCK* = true
-    LZ4_GCC_VERSION* = (__GNUC__ * 100 + __GNUC_MINOR__)
-  when (LZ4_GCC_VERSION >= 405) or defined(__clang__): 
-    template LZ4_DEPRECATED*(message: expr): expr = 
-      __attribute__((deprecated(message)))
-
-  elif (LZ4_GCC_VERSION >= 301): 
-    template LZ4_DEPRECATED*(message: expr): expr = 
-      __attribute__((deprecated))
-
-  elif defined(_MSC_VER): 
-    template LZ4_DEPRECATED*(message: expr): expr = 
-      __declspec(deprecated(message))
-
-  else: 
-    template LZ4_DEPRECATED*(message: expr): stmt = 
-      nil
-
-# Obsolete compression functions 
-# These functions are planned to start generate warnings by r131 approximately 
-
-proc LZ4_compress*(source: cstring; dest: cstring; sourceSize: cint): cint
-proc LZ4_compress_limitedOutput*(source: cstring; dest: cstring; 
-                                 sourceSize: cint; maxOutputSize: cint): cint
-proc LZ4_compress_withState*(state: pointer; source: cstring; dest: cstring; 
-                             inputSize: cint): cint
-proc LZ4_compress_limitedOutput_withState*(state: pointer; source: cstring; 
-    dest: cstring; inputSize: cint; maxOutputSize: cint): cint
-proc LZ4_compress_continue*(LZ4_streamPtr: ptr LZ4_stream_t; source: cstring; 
-                            dest: cstring; inputSize: cint): cint
-proc LZ4_compress_limitedOutput_continue*(LZ4_streamPtr: ptr LZ4_stream_t; 
-    source: cstring; dest: cstring; inputSize: cint; maxOutputSize: cint): cint
-# Obsolete decompression functions 
-# These function names are completely deprecated and must no longer be used.
-#   They are only provided here for compatibility with older programs.
-#    - LZ4_uncompress is the same as LZ4_decompress_fast
-#    - LZ4_uncompress_unknownOutputSize is the same as LZ4_decompress_safe
-#   These function prototypes are now disabled; uncomment them only if you really need them.
-#   It is highly recommended to stop using these prototypes and migrate to maintained ones 
-# int LZ4_uncompress (const char* source, char* dest, int outputSize); 
-# int LZ4_uncompress_unknownOutputSize (const char* source, char* dest, int isize, int maxOutputSize); 
-# Obsolete streaming functions; use new streaming interface whenever possible 
-#LZ4_DEPRECATED("use LZ4_createStream() instead") void* LZ4_create (char* inputBuffer);
-#LZ4_DEPRECATED("use LZ4_createStream() instead") int   LZ4_sizeofStreamState(void);
-#LZ4_DEPRECATED("use LZ4_resetStream() instead")  int   LZ4_resetStreamState(void* state, char* inputBuffer);
-#LZ4_DEPRECATED("use LZ4_saveDict() instead")     char* LZ4_slideInputBuffer (void* state);
-# Obsolete streaming decoding functions 
-#LZ4_DEPRECATED("use LZ4_decompress_safe_usingDict() instead") int LZ4_decompress_safe_withPrefix64k (const char* src, char* dst, int compressedSize, int maxDstSize);
-#LZ4_DEPRECATED("use LZ4_decompress_fast_usingDict() instead") int LZ4_decompress_fast_withPrefix64k (const char* src, char* dst, int originalSize);
-##if defined (__cplusplus)
-#}
-##endif
