@@ -73,6 +73,7 @@ COMMANDS["store"] = proc(ctx: var TinContext): int =
     let pkgdata = ctx.storage.store(ctx.args[1])
     success "Package $1 v$2 stored." % [pkgdata.name, pkgdata.version]
 
+# label major|minor|patch
 COMMANDS["label"] = proc(ctx: var TinContext): int =
   if ctx.args.len < 2:
     error "Label not specified"
@@ -94,6 +95,7 @@ COMMANDS["label"] = proc(ctx: var TinContext): int =
     pkg.setVersion(version)
     success "Package version set to $1." % $version
 
+# relabel <version>
 COMMANDS["relabel"] = proc(ctx: var TinContext): int =
   if ctx.args.len < 2:
     error "Label not specified"
@@ -102,12 +104,21 @@ COMMANDS["relabel"] = proc(ctx: var TinContext): int =
   if not label.validVersion:
     error "Invalid label: $1" % label
     return 61
-  execute(53):
+  execute(62):
     var pkg = loadPackage()
     pkg.setVersion(label.newVersion())
     success "Package version set to $1." % $label
 
 # inventory
+COMMANDS["inventory"] = proc(ctx: var TinContext): int =
+  execute(70):
+    ctx.storage.scan()
+    success "Package data reloaded:"
+    for name, pkg in ctx.storage.packages.pairs:
+      echo " $1 ($2)" % [name, pkg.latest]
+      for r in pkg.releases:
+        echo "   - $1" % r
+
 # scrap <tin> <version> [--all]
 # mart -a:<address> -p:<port>
 # buy --from:<mart> <tin>

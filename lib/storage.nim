@@ -14,7 +14,7 @@ import
 type
   TinPackageData =  object
     latest*: string
-    releases: seq[string]
+    releases*: seq[string]
   TinStorage* = object
     config*: TinConfig
     packages*: CritBitTree[TinPackageData]
@@ -52,12 +52,12 @@ proc scan*(stg: var TinStorage) =
   var details: seq[string]
   var name: string
   var version: string
-  stg.config["storage"] = newJArray()
+  stg.config["storage"] = newJObject()
   # Load packages
   for file in stg.folder.walkDir():
     if not file.path.fileExists:
       continue
-    details = file.path.search(PKGREGEX)
+    details = file.path.extractFileName.search(PKGREGEX)
     name = details[1]
     version = details[2]
     stg[name] = version
@@ -68,7 +68,7 @@ proc scan*(stg: var TinStorage) =
     stg.config["storage"][name] = %pkg
   # Save modified config
   stg.config.save()
-    
+
 proc load*(stg: var TinStorage) =
   var packages: CritBitTree[TinPackageData]
   var pkg: TinPackageData
