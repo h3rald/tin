@@ -7,7 +7,8 @@ import
   utils,
   config,
   package,
-  storage
+  storage,
+  version
 
 type
   TinArgs* = seq[string]
@@ -29,7 +30,7 @@ template execute(code: int, body: stmt) =
     let e = getCurrentException()
     error e.msg
     if not defined(release):
-      debug e.getStackTrace()
+      debug "\n" & e.getStackTrace()
     return code
 
 # prepare
@@ -41,7 +42,7 @@ COMMANDS["prepare"] = proc(ctx: var TinContext): int =
     error "Package name not specified."
     return 10
   execute(11):
-    newTinPackage(dir = getCurrentDir(), name = ctx.args[1], version = v)
+    newPackage(dir = getCurrentDir(), name = ctx.args[1], version = v)
     success "Tin package \"$1\" (version: $2) initialized." % [ctx.args[1], v] 
 
 # open <tin> <folder>
@@ -56,9 +57,9 @@ COMMANDS["open"] = proc(ctx: var TinContext): int =
 # fill
 COMMANDS["fill"] = proc(ctx: var TinContext): int =
   execute(30):
-    let pkg = newTinPackage()
+    let pkg = loadPackage()
     pkg.compress(getCurrentDir())
-    success "Tin package ready."
+    success "Package $1 v$2 ready." % [pkg.name, pkg.version]
 
 # store <tin>
 COMMANDS["store"] = proc(ctx: var TinContext): int =
@@ -69,8 +70,32 @@ COMMANDS["store"] = proc(ctx: var TinContext): int =
     error "Package file '$1' does not exist" % [ctx.args[1]]
     return 41
   execute(42):
-    ctx.storage.store(ctx.args[1])
+    let pkgdata = ctx.storage.store(ctx.args[1])
+    success "Package $1 v$2 stored." % [pkgdata.name, pkgdata.version]
 
+COMMANDS["label"] = proc(ctx: var TinContext): int =
+  if ctx.args.len < 2:
+    error "Label not specified"
+    return 50
+  let label = ctx.args[1]
+  if not ["major", "minor", "patch"].contains(label):
+    error "Invalid label: $1" % label
+    return 51
+  execute(52):
+    var pkg = loadPackage()
+    var version = pkg.version.newVersion()
+    case label:
+      of "major":
+        version.major.inc
+      of "minor":
+        version.minor.inc
+      of "patch":
+        version.patch.inc
+    pkg.setVersion(version)
+    success "Package version set to $1." % $version
+
+
+# relabel <version>
 # inventory
 # scrap <tin>
 # mart -a:<address> -p:<port>
@@ -79,7 +104,5 @@ COMMANDS["store"] = proc(ctx: var TinContext): int =
 # suppliers add <mart> <address>
 # suppliers remove <mart>
 # restock --all --from:<mart>
-# label major|minor|patch
-# relabel <version>
 # inventory --all --from:<mart>
 # withdraw <tin> --from:<mart>

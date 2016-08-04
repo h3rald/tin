@@ -7,7 +7,8 @@ import
 import
   regex,
   config,
-  utils
+  utils,
+  version
 
 
 type
@@ -21,23 +22,22 @@ type
 
 
 const PKGREGEX = "^(.+)-(\\d+\\.\\d+\\.\\d+)\\.tin\\.zip$"
-const VREGEX = "^(\\d+)\\.(\\d+)\\.(\\d+)$"
+
+proc getLatest(releases: seq[string]): string =
+  var v: TinVersion
+  var numbers = newSeq[int](0)
+  var version: int
+  for vstring in releases:
+    v = vstring.newVersion()
+    version = v.patch + (v.minor * 1000) + (v.major * 1000000)
+    numbers.add(version)
+    if numbers.max == version:
+      result = vstring
 
 proc `%`(pkg: TinPackageData): JsonNode =
   result = newJObject()
   result["latest"] = %pkg.latest
   result["releases"] = %pkg.releases
-
-proc getLatest(releases: seq[string]): string =
-  var v: seq[string]
-  var numbers: seq[int]
-  var version: int
-  for vstring in releases:
-    v = vstring.search(VREGEX)
-    version = (v[3].parseInt) + (v[2].parseInt * 1000) + (v[1].parseInt * 1000000)
-    numbers.add(version)
-    if numbers.max == version:
-      result = vstring
 
 proc `[]=`(stg: var TinStorage, name, version: string) =
   if not stg.packages.hasKey(name):
@@ -50,12 +50,12 @@ proc `[]=`(stg: var TinStorage, name, version: string) =
       stg.config["storage"][name] = %stg.packages[name]
 
 
-proc store*(stg: var TinStorage, file: string) =
+proc store*(stg: var TinStorage, file: string): tuple[name, version: string] =
   let filename = file.extractFilename()
-  debug "Storing package '$1'" % filename
   file.copyFile(stg.folder / filename)
   let details = filename.search(PKGREGEX)
-  stg[details[1]] = details[2]
+  result = (name: details[1], version: details[2])
+  stg[result.name] = result.version
   stg.config.save()
   
 proc scan*(stg: var TinStorage) =

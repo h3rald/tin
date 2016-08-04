@@ -7,12 +7,13 @@ import
 
 import
   ../vendor/miniz,
-  utils
+  utils,
+  version
 
 type 
   TinPackage* = object
-    name: string
-    version: string
+    name*: string
+    version*: string
     file: string
     data: JsonNode
   TinPackageExistsError* = ref object of SystemError
@@ -40,11 +41,11 @@ proc load(pkg: var TinPackage, file: string) =
 proc save(pkg: TinPackage) =
   pkg.file.writeFile(pkg.data.pretty)
 
-proc newTinPackage*(dir, name: string, version="1.0.0"): TinPackage {.discardable.}=
+proc newPackage*(dir, name: string, version="1.0.0"): TinPackage {.discardable.}=
   result = TinPackage(name: name, version: version)
   result.init(dir)
 
-proc newTinPackage*(): TinPackage =
+proc loadPackage*(): TinPackage =
   result.load(getCurrentDir() / "tin.json")
 
 proc files(pkg: TinPackage): seq[string] =
@@ -97,5 +98,15 @@ proc uncompress*(src, dst: string) =
       dest.writeFile("")
       echo pZip.mz_zip_reader_extract_to_file(i, dest, 0)
   discard pZip.mz_zip_reader_end()
+
+proc `[]`*(pkg: TinPackage, key: string): JsonNode = 
+  return pkg.data[key]
+
+proc `[]=`*(pkg: TinPackage, key: string, value: JsonNode) =
+  pkg.data[key] = value
+
+proc setVersion*(pkg: TinPackage, v: TinVersion) =
+  pkg["version"] = %v
+  pkg.save()
 
 

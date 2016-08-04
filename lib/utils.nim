@@ -1,3 +1,4 @@
+
 proc error*(msg: string) =
   stderr.writeLine("ERROR:   ", msg)
 
