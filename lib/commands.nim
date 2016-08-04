@@ -94,10 +94,21 @@ COMMANDS["label"] = proc(ctx: var TinContext): int =
     pkg.setVersion(version)
     success "Package version set to $1." % $version
 
+COMMANDS["relabel"] = proc(ctx: var TinContext): int =
+  if ctx.args.len < 2:
+    error "Label not specified"
+    return 60
+  let label = ctx.args[1]
+  if not label.validVersion:
+    error "Invalid label: $1" % label
+    return 61
+  execute(53):
+    var pkg = loadPackage()
+    pkg.setVersion(label.newVersion())
+    success "Package version set to $1." % $label
 
-# relabel <version>
 # inventory
-# scrap <tin>
+# scrap <tin> <version> [--all]
 # mart -a:<address> -p:<port>
 # buy --from:<mart> <tin>
 # sell --to:<mart> <tin>

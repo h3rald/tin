@@ -23,17 +23,6 @@ type
 
 const PKGREGEX = "^(.+)-(\\d+\\.\\d+\\.\\d+)\\.tin\\.zip$"
 
-proc getLatest(releases: seq[string]): string =
-  var v: TinVersion
-  var numbers = newSeq[int](0)
-  var version: int
-  for vstring in releases:
-    v = vstring.newVersion()
-    version = v.patch + (v.minor * 1000) + (v.major * 1000000)
-    numbers.add(version)
-    if numbers.max == version:
-      result = vstring
-
 proc `%`(pkg: TinPackageData): JsonNode =
   result = newJObject()
   result["latest"] = %pkg.latest
@@ -46,7 +35,8 @@ proc `[]=`(stg: var TinStorage, name, version: string) =
   else:
     if not stg.packages[name].releases.contains(version):
       stg.packages[name].releases.add(version)
-      stg.packages[name].latest = stg.packages[name].releases.getLatest()
+      stg.packages[name].releases = $stg.packages[name].releases.newVersionSeq.sort
+      stg.packages[name].latest = $stg.packages[name].releases.newVersionSeq.latest
       stg.config["storage"][name] = %stg.packages[name]
 
 
@@ -73,7 +63,7 @@ proc scan*(stg: var TinStorage) =
     stg[name] = version
   # Set latest and update config
   for name, pkg in stg.packages.mpairs:
-    pkg.latest = pkg.releases.getLatest()
+    pkg.latest = $pkg.releases.newVersionSeq.latest
     # Update config
     stg.config["storage"][name] = %pkg
   # Save modified config
