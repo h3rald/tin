@@ -114,12 +114,34 @@ COMMANDS["inventory"] = proc(ctx: var TinContext): int =
   execute(70):
     ctx.storage.scan()
     success "Package data reloaded:"
-    for name, pkg in ctx.storage.packages.pairs:
+    for name, pkg in ctx.storage.packages:
       echo " $1 ($2)" % [name, pkg.latest]
       for r in pkg.releases:
         echo "   - $1" % r
 
-# scrap <tin> <version> [--all]
+# scrap <tin> [<version>]
+COMMANDS["scrap"] = proc(ctx: var TinContext): int =
+  if ctx.args.len < 2:
+    error "Package not specified"
+    return 80
+  let name = ctx.args[1]
+  if ctx.args.len < 3:
+    # Delete al releases of package
+    execute(81):
+      if not ctx.storage.hasPackage(name):
+        raise TinPackageNotFoundError(msg: "Package '$1' not found in storage" % name)
+      ctx.storage.delete(name)
+      success "Package '$1' deleted." % name
+  else:
+    # Delete a specific version of package
+    let version = ctx.args[2]
+    if not version.validVersion:
+      error "Invalid version: $1" % version
+      return 82
+    execute(83):
+      ctx.storage.delete(name, version)
+      success "Version v$2 of package '$1' deleted." % [name, version]
+
 # mart -a:<address> -p:<port>
 # buy --from:<mart> <tin>
 # sell --to:<mart> <tin>
