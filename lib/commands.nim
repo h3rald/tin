@@ -18,9 +18,78 @@ type
     storage*: TinStorage
     args*: TinArgs
     opts*: TinOpts
+  TinArgumentDocObj = object
+    name: string
+    cmd: TinCommandDoc
+    description: string
+    default: string
+    optional: bool
+  TinArgumentDoc = ref TinArgumentDocObj
+  TinOptionDocObj = object
+    cmd: TinCommandDoc
+    description: string
+    name: string
+    flag: bool
+    default: string
+  TinOptionDoc = ref TinOptionDocObj
+  TinArgumentDocTree = CritBitTree[TinArgumentDoc]
+  TinOptionDocTree = CritBitTree[TinOptionDoc]
+  TinCommandDocObj = object
+    name: string
+    description: string
+    args: TinArgumentDocTree
+    opts: TinOptionDocTree
+  TinCommandDoc = ref TinCommandDocObj
   TinCommand = proc(ctx: var TinContext): int
 
 var COMMANDS*: CritBitTree[TinCommand]
+var COMMANDDOCS*: CritBitTree[TinCommandDoc]
+
+
+### Documentation
+
+proc cmd(name: string): TinCommandDoc {.discardable.} =
+  result = new TinCommandDoc
+  result.name = name
+  COMMANDDOCS[name] = result
+
+proc desc(cmd: TinCommandDoc, description: string): TinCommandDoc {.discardable.} =
+  cmd.description = description
+  return cmd
+
+proc arg(cmd: TinCommandDoc, name: string, mandatory = true): TinArgumentDoc {.discardable.} =
+  result = new TinArgumentDoc
+  result.name = name
+  result.optional = not(mandatory)
+  result.cmd = cmd
+  cmd.args[name] = result
+
+proc desc(arg: TinArgumentDoc, description: string): TinArgumentDoc {.discardable.}=
+  arg.description = description
+  return arg
+
+proc cmd(arg: TinArgumentDoc): TinCommandDoc {.discardable.} =
+  return arg.cmd
+
+proc opt(cmd: TinCommandDoc, name: string, flag = false): TinOptionDoc {.discardable.} =
+  result = new TinOptionDoc
+  result.flag = flag
+  result.name = name 
+  result.cmd = cmd
+  cmd.opts[name] = result
+
+proc desc(opt: TinOptionDoc, description: string): TinOptionDoc {.discardable.}=
+  opt.description = description
+  return opt
+
+proc def(opt: TinOptionDoc, value: string): TinOptionDoc {.discardable.} =
+  opt.default = value
+  return opt
+
+proc cmd(opt: TinOptionDoc): TinCommandDoc {.discardable.} =
+  return opt.cmd
+
+### Commands
 
 template execute(code: int, body: stmt) =
   try:
@@ -33,7 +102,10 @@ template execute(code: int, body: stmt) =
       debug "\n" & e.getStackTrace()
     return code
 
-# prepare
+cmd("prepare")
+  .desc("Creates a tin.json package definition file in the current directory.")
+  .arg("name").desc("The name of the package.").cmd
+  .opt("version").desc("The initial version of the package.").def("1.0.0")
 COMMANDS["prepare"] = proc(ctx: var TinContext): int =
   var v = "1.0.0"
   if ctx.opts.hasKey("version"):
@@ -148,5 +220,6 @@ COMMANDS["scrap"] = proc(ctx: var TinContext): int =
 # suppliers add <mart> <address>
 # suppliers remove <mart>
 # restock --all --from:<mart>
-# inventory --all --from:<mart>
+# list --all --from:<mart>
+# search --from:<mart>
 # withdraw <tin> --from:<mart>
