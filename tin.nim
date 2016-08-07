@@ -27,21 +27,16 @@ STORAGE.load
 var ARGS =  newSeq[string](0) 
 var OPTIONS: CritBitTree[string]
 let VERSION = "1.0.0"
-let USAGE = "  Tin v" & VERSION & " - a tiny general-purpose package manager" & """
+var USAGE = "  Tin v" & VERSION & " - a tiny general-purpose package manager" & """
 
   (c) 2016 Fabio Cevasco
   
   Usage:
     tin <command> [arguments] [options]
 
-  Commands:
-    init <name>       Creates a tin.json file in the current directory for
-                      package <name>.  
-    fill              Creates a compressed package file.
-    open <src> <dst>  Uncompresses the <src> tin package to target directory <dst>.
-  Options:
-    -v, --version     (init) Specifies a (semantic) version for the package.
-"""
+  Commands:"""
+for cmd in COMMANDDOCS.values:
+  USAGE &= "\n" & $cmd
 
 # Process Arguments
 for kind, key, val in getopt():

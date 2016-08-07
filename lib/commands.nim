@@ -18,6 +18,14 @@ type
     storage*: TinStorage
     args*: TinArgs
     opts*: TinOpts
+  TinArgumentDocSeq = seq[TinArgumentDoc]
+  TinOptionDocTree = CritBitTree[TinOptionDoc]
+  TinCommandDocObj = object
+    name: string
+    description: string
+    args*: TinArgumentDocSeq
+    opts*: TinOptionDocTree
+  TinCommandDoc = ref TinCommandDocObj
   TinArgumentDocObj = object
     name: string
     cmd: TinCommandDoc
@@ -26,20 +34,12 @@ type
     optional: bool
   TinArgumentDoc = ref TinArgumentDocObj
   TinOptionDocObj = object
+    name: string
     cmd: TinCommandDoc
     description: string
-    name: string
     flag: bool
     default: string
   TinOptionDoc = ref TinOptionDocObj
-  TinArgumentDocTree = CritBitTree[TinArgumentDoc]
-  TinOptionDocTree = CritBitTree[TinOptionDoc]
-  TinCommandDocObj = object
-    name: string
-    description: string
-    args: TinArgumentDocTree
-    opts: TinOptionDocTree
-  TinCommandDoc = ref TinCommandDocObj
   TinCommand = proc(ctx: var TinContext): int
 
 var COMMANDS*: CritBitTree[TinCommand]
@@ -50,6 +50,7 @@ var COMMANDDOCS*: CritBitTree[TinCommandDoc]
 
 proc cmd(name: string): TinCommandDoc {.discardable.} =
   result = new TinCommandDoc
+  result.args = newSeq[TinArgumentDoc](0)
   result.name = name
   COMMANDDOCS[name] = result
 
@@ -62,7 +63,7 @@ proc arg(cmd: TinCommandDoc, name: string, mandatory = true): TinArgumentDoc {.d
   result.name = name
   result.optional = not(mandatory)
   result.cmd = cmd
-  cmd.args[name] = result
+  cmd.args.add result
 
 proc desc(arg: TinArgumentDoc, description: string): TinArgumentDoc {.discardable.}=
   arg.description = description
@@ -88,6 +89,36 @@ proc def(opt: TinOptionDoc, value: string): TinOptionDoc {.discardable.} =
 
 proc cmd(opt: TinOptionDoc): TinCommandDoc {.discardable.} =
   return opt.cmd
+
+proc pad(s: string, maxlen: int): string =
+  return s & " ".repeat(maxlen - s.len)
+
+proc `$`*(option: TinOptionDoc): string =
+  result = "          " & option.name.pad(15) & option.description
+  if not option.default.isNil:
+    result &= "\n      " & " ".repeat(19) & "(default: " & option.default & ")"
+
+proc `$`*(argument: TinArgumentDoc): string =
+  result = "          " & argument.name.pad(15) & argument.description
+  if not argument.default.isNil:
+    result &= "\n      " & " ".repeat(19) & "(default: " & argument.default
+
+proc `$`*(cmd: TinCommandDoc): string =
+  result = "      " & cmd.name
+  for argument in cmd.args:
+    if argument.optional:
+      result &= " [$1]" % argument.name
+    else:
+      result &= " <$1>" % argument.name
+  if cmd.opts.len > 0:
+    result &= " ["
+  for option in cmd.opts.values:
+    result &= "--" & option.name
+    if not option.flag:
+      result &= ":<$1>" % option.name
+  if cmd.opts.len > 0:
+    result &= "]"
+  result &= "\n        " & cmd.description
 
 ### Commands
 
@@ -138,7 +169,8 @@ COMMANDS["fill"] = proc(ctx: var TinContext): int =
     success "Package $1 v$2 ready." % [pkg.name, pkg.version]
 
 cmd("store")
-  .arg("tin").desc("Stores the specified .tin.zip package into the local storage directory.")
+  .desc("Stores the specified .tin.zip package into the local storage directory.")
+  .arg("tin").desc("A valid tin package file.")
 COMMANDS["store"] = proc(ctx: var TinContext): int =
   if ctx.args.len < 2:
     error "Package file not specified"
@@ -226,6 +258,27 @@ COMMANDS["scrap"] = proc(ctx: var TinContext): int =
       ctx.storage.delete(name, version)
       success "Version v$2 of package '$1' deleted." % [name, version]
 
+cmd("help")
+  .desc("Displays information about a tin command.")
+  .arg("command").desc("A valid tin command.")
+COMMANDS["help"] = proc(ctx: var TinContext): int =
+  if ctx.args.len < 2:
+    error "Command not specified."
+    return 90
+  if not COMMANDDOCS.hasKey ctx.args[1]:
+    error "Invalid command: " & ctx.args[1]
+    return 91
+  let cmd = COMMANDDOCS[ctx.args[1]]
+  echo $cmd
+  if cmd.args.len > 0:
+    echo "        Arguments:"
+    for arg in cmd.args:
+      echo $arg
+  if cmd.opts.len > 0:
+    echo "        Options:"
+    for opt in cmd.opts.values:
+      echo $opt
+      
 # mart -a:<address> -p:<port>
 # buy --from:<mart> <tin>
 # sell --to:<mart> <tin>
