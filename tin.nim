@@ -9,7 +9,8 @@ import
   lib/utils,
   lib/config,
   lib/commands,
-  lib/storage
+  lib/storage,
+  lib/docs
 
 when defined(windows):
   const HOMEDIR = "HOMEPATH".getEnv
@@ -51,7 +52,6 @@ for kind, key, val in getopt():
         OPTIONS[key] = val
     else:
       discard
-        
 
 # Dispatch commands
 if ARGS.len == 0:
