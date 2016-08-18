@@ -9,36 +9,38 @@ import
   config
 
 
-proc getMart(srv: TinServer, res: TinResource): JsonNode =
-  result = newJObject()
-  result["version"] = srv.config["version"]
+proc getMart(srv: TinServer, res: TinResource): TinResponse =
+  var contents = newJObject()
+  contents["version"] = srv.config["version"]
+  return TinResponse(kind: rsJSON, json: contents)
 
-proc getPackages(srv: TinServer, res: TinResource): JsonNode =
-  result = newJObject()
+proc getPackages(srv: TinServer, res: TinResource): TinResponse =
+  var contents = newJObject()
   var search = ""
-  var short = false
+  var full = false
+  var total = 0
   if res.params.hasKey("search"):
     search = res.params["search"]
-    result["search"] = %search
-  if res.params.hasKey("short"):
-    short = true
-    result["short"] = %true
-  result["values"] = newJArray()
+    contents["search"] = %search
+  if res.params.hasKey("full"):
+    full = true
+  contents["values"] = newJArray()
   for key, val in srv.config["storage"].pairs:
     if search == "" or key.contains(search):
-      if short:
-        result["values"].add(%key)
+      total.inc
+      var v = newJObject()
+      v["name"] = %key
+      v["latest"] = val["latest"]
+      v["releases"] = val["releases"]
+      if full:
+        contents["values"].add(v)
       else:
-        result["values"].add(val)
-  return
+        contents["values"].add(%key)
+  contents["total"] = %total
+  return TinResponse(kind: rsJSON, json: contents)
 
-proc getPackageNames(srv: TinServer, res: TinResource): JsonNode =
-  result = newJObject()
-  result["values"] = newJArray()
-  for key, val in srv.config["storage"].pairs:
-    result["values"].add(%key)
 
-proc api_v1*(srv: TinServer, res: TinResource): JsonNode =
+proc api_v1*(srv: TinServer, res: TinResource): TinResponse =
   let v1 = 1
   let mart = "mart"
   let packages = "packages"
@@ -49,6 +51,8 @@ proc api_v1*(srv: TinServer, res: TinResource): JsonNode =
       res.invalidOp()
     entity(res, packages):
       get(res):
+        #args(res, 1):
+        #  return srv.getPackage(res)
         return srv.getPackages(res)
       res.invalidOp()
     res.invalidEntity()

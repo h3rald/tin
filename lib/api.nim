@@ -22,6 +22,15 @@ type
     operation*: string
     args*: seq[string]
     params*: CritBitTree[string]
+  TinResponseKind* = enum
+    rsJSON
+    rsZIP
+  TinResponse* = object
+    case kind*: TinResponseKind
+    of rsJSON:
+      json*: JsonNode
+    of rsZIP:
+      zip*: string
   TinServerError* = ref object of SystemError
     code*: HttpCode
 

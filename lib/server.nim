@@ -14,13 +14,20 @@ import
   api,
   api_v1
 
-proc respond(srv: TinServer, req: Request, content: JsonNode, code = Http200): Future[void] =
+proc respond(srv: TinServer, req: Request, response: TinResponse, code = Http200): Future[void] =
   var headers: array[0..3, tuple[key:string, val:string]]
   headers[0] = (key:"Access-Control-Allow-Origin", val: "*")
   headers[1] = (key:"Access-Control-Allow-Headers", val: "Content-Type")
   headers[2] = (key:"Server", val: "TinMart/" & srv.config["version"].getStr)
-  headers[3] = (key:"Content-Type", val: "application/json")
-  return req.respond(code, content.pretty, headers.newHttpHeaders)
+  var content: string
+  case response.kind
+  of rsJSON:
+    content = response.json.pretty
+    headers[3] = (key:"Content-Type", val: "application/json")
+  of rsZIP:
+    content = response.zip
+    headers[3] = (key:"Content-Type", val: "application/zip")
+  return req.respond(code, content, headers.newHttpHeaders)
 
 proc resource(srv: TinServer, req: Request): TinResource =
   var mPath = newSeq[string](3)
@@ -44,7 +51,7 @@ proc process(srv: TinServer, req: Request): Future[void] =
     let e = getCurrentException().TinServerError
     var contents = newJObject()
     contents["error"] = %e.msg
-    return srv.respond(req, contents, e.code)
+    return srv.respond(req, TinResponse(kind: rsJSON, json: contents), e.code)
   
 proc start*(srv: TinServer) =
   proc handleHttpRequest(req: Request): Future[void] {.async.} =
