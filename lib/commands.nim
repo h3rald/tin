@@ -1,7 +1,8 @@
 import 
   critbits,
   os,
-  strutils
+  strutils,
+  asyncdispatch
 
 import
   utils,
@@ -9,7 +10,9 @@ import
   package,
   storage,
   version,
-  docs
+  docs,
+  api,
+  server
 
 type
   TinArgs* = seq[string]
@@ -17,6 +20,7 @@ type
   TinContext* = object
     config*: TinConfig
     storage*: TinStorage
+    server*: TinServer
     args*: TinArgs
     opts*: TinOpts
   TinCommand = proc(ctx: var TinContext): int
@@ -159,16 +163,34 @@ COMMANDS["scrap"] = proc(ctx: var TinContext): int =
       ctx.storage.delete(name, version)
       success "Version v$2 of package '$1' deleted." % [name, version]
 
+cmd("mart")
+  .desc("Starts the tin package server.")
+  .opt("address").desc("The server IP address or hostname.").def("0.0.0.0").cmd
+  .opt("port").desc("The server port.").def($7700)
+COMMANDS["mart"] = proc(ctx: var TinContext): int =
+  var address = "0.0.0.0"
+  var port = 7700
+  if ctx.opts.hasKey("address"):
+    address = ctx.opts["address"]
+  if ctx.opts.hasKey("port"):
+    port = ctx.opts["port"].parseInt
+  execute(90):
+    success "Tin Mart opening on $1:$2..." % [address, $port]
+    ctx.server.address = address
+    ctx.server.port = port
+    ctx.server.start()
+    runForever()
+
 cmd("help")
   .desc("Displays information about a tin command.")
   .arg("command").desc("A valid tin command.")
 COMMANDS["help"] = proc(ctx: var TinContext): int =
   if ctx.args.len < 2:
     error "Command not specified."
-    return 90
+    return 100
   if not COMMANDDOCS.hasKey ctx.args[1]:
     error "Invalid command: " & ctx.args[1]
-    return 91
+    return 101
   let cmd = COMMANDDOCS[ctx.args[1]]
   echo $cmd
   if cmd.args.len > 0:
@@ -180,9 +202,8 @@ COMMANDS["help"] = proc(ctx: var TinContext): int =
     for opt in cmd.opts.values:
       echo $opt
       
-# mart -a:<address> -p:<port>
-# buy --from:<mart> <tin>
 # sell --to:<mart> <tin>
+# buy --from:<mart> <tin>
 # suppliers add <mart> <address>
 # suppliers remove <mart>
 # restock --all --from:<mart>

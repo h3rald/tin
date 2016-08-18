@@ -10,7 +10,9 @@ import
   lib/config,
   lib/commands,
   lib/storage,
-  lib/docs
+  lib/docs,
+  lib/api,
+  lib/server
 
 when defined(windows):
   const HOMEDIR = "HOMEPATH".getEnv
@@ -24,6 +26,8 @@ CONFIG.load
 var STORAGE = TinStorage(folder: HOMEDIR / ".tin/storage", config: CONFIG)
 STORAGE.init
 STORAGE.load
+
+var SERVER = TinServer(config: CONFIG, storage: STORAGE)
 
 var ARGS =  newSeq[string](0) 
 var OPTIONS: CritBitTree[string]
@@ -59,7 +63,7 @@ if ARGS.len == 0:
   quit(0)
 
 if COMMANDS.hasKey(ARGS[0]):
-  var ctx = TinContext(storage: STORAGE, config: CONFIG, args: ARGS, opts: OPTIONS)
+  var ctx = TinContext(storage: STORAGE, config: CONFIG, server: SERVER, args: ARGS, opts: OPTIONS)
   quit COMMANDS[ARGS[0]](ctx)
 else:
   error "Invalid command: $1" % [ARGS[0]] 

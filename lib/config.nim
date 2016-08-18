@@ -23,6 +23,8 @@ proc save*(cfg: TinConfig) =
 proc validate(cfg: var TinConfig) =
   if not cfg.data.hasKey("storage"):
     cfg.data["storage"] = newJObject();
+  if not cfg.data.hasKey("version"):
+    cfg.data["version"] = %"1.0.0-alpha"
   cfg.save()
 
 proc load*(cfg: var TinConfig) =

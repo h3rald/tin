@@ -7,3 +7,4 @@ proc success*(msg: string) =
 
 proc debug*(msg: string) =
   echo(            "DEBUG:   ", msg)
+
