@@ -48,8 +48,18 @@ iterator packages*(stg: TinStorage): tuple[name: string, package: TinPackageData
     let t = (name: name, package: pkg)
     yield t
 
+proc getLatestPackagePath*(stg: TinStorage, name: string): string =
+  let v = stg.data[name].latest
+  return stg.folder / name & "-" & v & ".tin.zip"
+
+proc getPackagePath*(stg: TinStorage, name, version: string): string =
+  return stg.folder / name & "-" & version & ".tin.zip"
+
 proc hasPackage*(stg: TinStorage, name: string): bool =
   return stg.data.hasKey(name)
+
+proc hasPackageVersion*(stg: TinStorage, name, version: string): bool =
+  return stg.data.hasKey(name) and stg.data[name].releases.contains(version)
 
 proc store*(stg: var TinStorage, file: string): tuple[name, version: string] =
   let filename = file.extractFilename()

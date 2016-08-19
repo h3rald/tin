@@ -49,6 +49,8 @@ proc process(srv: TinServer, req: Request): Future[void] =
     return srv.respond(req, contents)
   except:
     let e = getCurrentException().TinServerError
+    error e.msg
+    debug getStackTrace()
     var contents = newJObject()
     contents["error"] = %e.msg
     return srv.respond(req, TinResponse(kind: rsJSON, json: contents), e.code)

@@ -1,12 +1,16 @@
 import
   json,
   asyncdispatch,
+  asynchttpserver,
   critbits,
+  os,
   strutils
 
 import
   api,
-  config
+  config,
+  storage,
+  utils
 
 
 proc getMart(srv: TinServer, res: TinResource): TinResponse =
@@ -39,6 +43,15 @@ proc getPackages(srv: TinServer, res: TinResource): TinResponse =
   contents["total"] = %total
   return TinResponse(kind: rsJSON, json: contents)
 
+proc getPackage(srv: TinServer, res: TinResource): TinResponse =
+  if srv.storage.hasPackage(res.args[0]):
+    let file = srv.storage.getLatestPackagePath(res.args[0])
+    debug file
+    if file.fileExists:
+      result.kind = rsZip
+      result.zip = file.readFile()
+      return
+  raise TinServerError(code: Http404, msg: "Package '$1' not found" % res.args[0])
 
 proc api_v1*(srv: TinServer, res: TinResource): TinResponse =
   let v1 = 1
@@ -51,8 +64,8 @@ proc api_v1*(srv: TinServer, res: TinResource): TinResponse =
       res.invalidOp()
     entity(res, packages):
       get(res):
-        #args(res, 1):
-        #  return srv.getPackage(res)
+        args(res, 1):
+          return srv.getPackage(res)
         return srv.getPackages(res)
       res.invalidOp()
     res.invalidEntity()
