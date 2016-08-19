@@ -45,7 +45,14 @@ proc getPackages(srv: TinServer, res: TinResource): TinResponse =
 
 proc getPackage(srv: TinServer, res: TinResource): TinResponse =
   if srv.storage.hasPackage(res.args[0]):
-    let file = srv.storage.getLatestPackagePath(res.args[0])
+    var file: string
+    if res.args.len > 1: 
+      if srv.storage.hasPackageVersion(res.args[0], res.args[1]):
+        file = srv.storage.getPackagePath(res.args[0], res.args[1])
+      else:
+        raise TinServerError(code: Http404, msg: "Version $2 of package '$1' not found" % [res.args[0], res.args[1]])
+    else:
+      file = srv.storage.getLatestPackagePath(res.args[0])
     debug file
     if file.fileExists:
       result.kind = rsZip
