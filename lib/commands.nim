@@ -2,7 +2,8 @@ import
   critbits,
   os,
   strutils,
-  asyncdispatch
+  asyncdispatch,
+  json
 
 import
   utils,
@@ -201,9 +202,58 @@ COMMANDS["help"] = proc(ctx: var TinContext): int =
     echo "        Options:"
     for opt in cmd.opts.values:
       echo $opt
+
+cmd("suppliers")
+  .desc("Adds, removes a mart from the list of known suppliers or lists suppliers.")
+  .arg("operation").desc("Specify 'add', 'remove', or 'list'.").cmd
+  .arg("name").desc("Specify the name of the mart to add or remove.").cmd
+  .arg("address").desc("The full address/hostname of the mart to add.")
+COMMANDS["suppliers"] = proc(ctx: var TinContext): int =
+  if ctx.args.len < 2:
+    error "Operation not specified."
+    return 110
+  let operation = ctx.args[1]
+  case operation
+  of "add":
+    if ctx.args.len < 3:
+      error "Mart name not specified."
+      return 111
+    let name = ctx.args[2]
+    if ctx.args.len < 4:
+      error "Mart address not specified"
+      return 113
+    let address = ctx.args[3]
+    execute(115):
+      ctx.config.addServer(name, address)
+      success "Mart '$1' added to the list of suppliers." % name
+  of "remove":
+    if ctx.args.len < 3:
+      error "Mart name not specified."
+      return 111
+    let name = ctx.args[2]
+    execute(116):
+      ctx.config.removeServer(name)
+      success "Mart '$1' removed from the list of suppliers."
+  of "list":
+    if ctx.config["servers"].len == 0:
+      error "No registered suppliers."
+      return 114
+    for key, val in ctx.config["servers"].pairs:
+      echo "Known Suppliers:"
+      echo " - $1 ($2)" % [key, $val["address"]]
+  else:
+    error "Invalid operation: " & operation
+    return 112
       
-# sell --to:<mart> <tin>
-# buy --from:<mart> <tin>
+cmd("get")
+  .desc("Retrieves a specific tin package (default: latest version).")
+  .arg("package").desc("A valid tin package name.").cmd
+  .opt("version").desc("If specified, retrieves a specific version of the package.")
+COMMANDS["get"] = proc(ctx: var TinContext): int =
+  discard #TODO
+
+# put/sell --to:<mart> <tin>
+# get/buy --from:<mart> <tin>
 # suppliers add <mart> <address>
 # suppliers remove <mart>
 # restock --all --from:<mart>
