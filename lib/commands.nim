@@ -13,7 +13,8 @@ import
   version,
   docs,
   api,
-  server
+  server,
+  client
 
 type
   TinArgs* = seq[string]
@@ -22,6 +23,7 @@ type
     config*: TinConfig
     storage*: TinStorage
     server*: TinServer
+    client*: TinClient
     args*: TinArgs
     opts*: TinOpts
   TinCommand = proc(ctx: var TinContext): int
@@ -250,10 +252,34 @@ cmd("get")
   .arg("package").desc("A valid tin package name.").cmd
   .opt("version").desc("If specified, retrieves a specific version of the package.")
 COMMANDS["get"] = proc(ctx: var TinContext): int =
-  discard #TODO
+  if ctx.config["servers"].len == 0:
+    error "No registered suppliers."
+    return 120
+  if ctx.args.len < 2:
+    error "Package not specified."
+    return 121
+  let name = ctx.args[1]
+  var version = ""
+  if ctx.opts.hasKey("version"):
+    version = ctx.opts["version"]
+  var host: string
+  if ctx.opts.hasKey("from"):
+    host = ctx.opts["from"]
+    if ctx.config["servers"].hasKey(host):
+      host = ctx.config["servers"][host]["address"].getStr
+    else:
+      error "Mart '" & host & "' not found."
+      return 122
+  execute(123):
+    var data: tuple[name, version: string]
+    if host.isNil:
+      data = ctx.client.getPackage(name, version)
+    else:
+      data = ctx.client.getPackage(host, name, version)
+    success "Package $1 v$2 stored." % [data.name, data.version]
 
-# put/sell --to:<mart> <tin>
 # get/buy --from:<mart> <tin>
+# put/sell --to:<mart> <tin>
 # suppliers add <mart> <address>
 # suppliers remove <mart>
 # restock --all --from:<mart>

@@ -30,6 +30,7 @@ type
     of rsJSON:
       json*: JsonNode
     of rsZIP:
+      filename*: string
       zip*: string
   TinServerError* = ref object of SystemError
     code*: HttpCode

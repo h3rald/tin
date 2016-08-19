@@ -61,13 +61,21 @@ proc hasPackage*(stg: TinStorage, name: string): bool =
 proc hasPackageVersion*(stg: TinStorage, name, version: string): bool =
   return stg.data.hasKey(name) and stg.data[name].releases.contains(version)
 
-proc store*(stg: var TinStorage, file: string): tuple[name, version: string] =
-  let filename = file.extractFilename()
-  file.copyFile(stg.folder / filename)
+proc savePackageDetails(stg: var TinStorage, filename: string): tuple[name, version: string] =
   let details = filename.search(PKGREGEX)
   result = (name: details[1], version: details[2])
   stg[result.name] = result.version
   stg.config.save()
+
+proc store*(stg: var TinStorage, filename, contents: string): tuple[name, version: string] =
+  let path = stg.folder / filename
+  path.writeFile(contents)
+  return stg.savePackageDetails(filename)
+
+proc store*(stg: var TinStorage, file: string): tuple[name, version: string] =
+  let filename = file.extractFilename()
+  file.copyFile(stg.folder / filename)
+  return stg.savePackageDetails(filename)
 
 proc delete*(stg: var TinStorage, name: string, version = "*") =
   if not stg.hasPackage(name):

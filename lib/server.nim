@@ -15,7 +15,7 @@ import
   api_v1
 
 proc respond(srv: TinServer, req: Request, response: TinResponse, code = Http200): Future[void] =
-  var headers: array[0..3, tuple[key:string, val:string]]
+  var headers: array[0..4, tuple[key:string, val:string]]
   headers[0] = (key:"Access-Control-Allow-Origin", val: "*")
   headers[1] = (key:"Access-Control-Allow-Headers", val: "Content-Type")
   headers[2] = (key:"Server", val: "TinMart/" & srv.config["version"].getStr)
@@ -24,9 +24,11 @@ proc respond(srv: TinServer, req: Request, response: TinResponse, code = Http200
   of rsJSON:
     content = response.json.pretty
     headers[3] = (key:"Content-Type", val: "application/json")
+    headers[4] = (key: "Content-Disposition", val: "Inline")
   of rsZIP:
     content = response.zip
     headers[3] = (key:"Content-Type", val: "application/zip")
+    headers[4] = (key: "Content-Disposition", val: "Attachment; filename=" & response.filename)
   return req.respond(code, content, headers.newHttpHeaders)
 
 proc resource(srv: TinServer, req: Request): TinResource =
