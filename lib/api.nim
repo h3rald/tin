@@ -19,7 +19,7 @@ type
   TinResource* = object 
     version*: int
     entity*: string
-    operation*: string
+    operation*: HttpMethod
     args*: seq[string]
     params*: CritBitTree[string]
   TinResponseKind* = enum
@@ -36,7 +36,7 @@ type
     code*: HttpCode
 
 proc invalidOp*(res: TinResource) = 
-  raise TinServerError(code: Http405, msg: "Method Not Allowed - Invalid $1 operation on entity '$2'" % [res.operation, res.entity])
+  raise TinServerError(code: Http405, msg: "Method Not Allowed - Invalid $1 operation on entity '$2'" % [$res.operation, res.entity])
 
 proc invalidVersion*(res: TinResource) = 
   raise TinServerError(code: Http400, msg: "Bad Request - Invalid version: $1" % $res.version)
@@ -52,12 +52,12 @@ template entity*(res: TinResource, e: string, body: untyped): untyped =
   if res.entity == e:
     body
 
-template operation(res: TinResource, op: string, body: untyped): untyped =
+template operation(res: TinResource, op: HttpMethod, body: untyped): untyped =
   if res.operation == op:
     body
 
 template get*(res: TinResource, body: untyped): untyped =
-  operation(res, "GET"):
+  operation(res, HttpGet):
     body
 
 template args*(res: TinResource, n: int, body: untyped): untyped =

@@ -278,11 +278,9 @@ COMMANDS["get"] = proc(ctx: var TinContext): int =
       data = ctx.client.getPackage(host, name, version)
     success "Package $1 v$2 stored." % [data.name, data.version]
 
-# get/buy --from:<mart> <tin>
-# put/sell --to:<mart> <tin>
-# suppliers add <mart> <address>
-# suppliers remove <mart>
-# restock --all --from:<mart>
+
 # list --all --from:<mart>
 # search --from:<mart>
+# put --to:<mart> <tin>
+# restock --all --from:<mart>
 # withdraw <tin> --from:<mart>

@@ -32,14 +32,17 @@ proc getPackages(srv: TinServer, res: TinResource): TinResponse =
   for key, val in srv.config["storage"].pairs:
     if search == "" or key.contains(search):
       total.inc
-      var v = newJObject()
-      v["name"] = %key
-      v["latest"] = val["latest"]
-      v["releases"] = val["releases"]
       if full:
+        var v = newJObject()
+        v["name"] = %key
+        v["latest"] = val["latest"]
+        v["releases"] = val["releases"]
         contents["values"].add(v)
       else:
-        contents["values"].add(%key)
+        var v = newJObject()
+        v["name"] = %key
+        v["version"] = val["latest"]
+        contents["values"].add(v)
   contents["total"] = %total
   return TinResponse(kind: rsJSON, json: contents)
 

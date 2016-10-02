@@ -3,7 +3,8 @@ import
   json,
   parseopt2,
   critbits,
-  strutils
+  strutils,
+  httpclient
 
 import
   lib/utils,
@@ -29,7 +30,7 @@ STORAGE.init
 STORAGE.load
 
 var SERVER = TinServer(config: CONFIG, storage: STORAGE)
-var CLIENT = TinClient(config: CONFIG, storage: STORAGE, protocol: "http")
+var CLIENT = TinClient(config: CONFIG, storage: STORAGE, protocol: "http", client: newHttpClient())
 
 var ARGS =  newSeq[string](0) 
 var OPTIONS: CritBitTree[string]

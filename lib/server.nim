@@ -36,7 +36,7 @@ proc resource(srv: TinServer, req: Request): TinResource =
   debug "Request: " & req.url.path
   mPath = req.url.path.search("""^\/([^\/])+\/?([^\/]+\/?)*""")
   result.version = 1 # DEFAULT: v1
-  result.operation = req.reqMethod.toUpper
+  result.operation = req.reqMethod
   result.entity = mPath[1]
   if result.entity == "":
     result.entity = "mart"
